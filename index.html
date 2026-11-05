@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Mon petit monde</title>
+<style>
+body {
+  margin:0; height:100vh; overflow:hidden;
+  background:linear-gradient(#65b5f0,#b5e3ff);
+  color:white; font-family:Arial; text-align:center;
+}
+h1 { margin-top:100px; }
+.cat { width:220px; margin:20px auto; animation:saute 2s infinite ease-in-out; }
+.cloud { position:absolute; font-size:65px; animation:vole 18s linear infinite; }
+.c1 { top:15%; left:-100px; }
+.c2 { top:40%; left:-150px; animation-delay:8s; }
+@keyframes saute { 50% { transform:translateY(-18px); } }
+@keyframes vole { to { left:110%; } }
+button {
+  padding:12px 25px; border:0; border-radius:20px;
+  background:#1769aa; color:white; cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="cloud c1">☁️</div>
+<div class="cloud c2">☁️</div>
+
+<h1>Bienvenue dans mon petit monde</h1>
+
+<div class="cat">
+<svg viewBox="0 0 220 190" xmlns="http://www.w3.org/2000/svg">
+  <!-- Queue -->
+  <path d="M155 135 Q210 145 190 95 Q180 75 195 65"
+        fill="none" stroke="#292b35" stroke-width="13" stroke-linecap="round"/>
+  <!-- Corps -->
+  <ellipse cx="110" cy="135" rx="62" ry="39" fill="#292b35"/>
+  <!-- Pattes -->
+  <ellipse cx="75" cy="160" rx="19" ry="11" fill="#292b35"/>
+  <ellipse cx="145" cy="160" rx="19" ry="11" fill="#292b35"/>
+  <!-- Tête -->
+  <circle cx="110" cy="75" r="48" fill="#292b35"/>
+  <!-- Oreilles -->
+  <path d="M70 48 L68 8 L101 34 Z" fill="#292b35"/>
+  <path d="M120 34 L153 8 L150 53 Z" fill="#292b35"/>
+  <path d="M77 35 L75 19 L91 34 Z M131 33 L145 19 L143 40 Z" fill="#e99cae"/>
+  <!-- Yeux -->
+  <ellipse cx="92" cy="75" rx="6" ry="9" fill="#b8e6ff"/>
+  <ellipse cx="128" cy="75" rx="6" ry="9" fill="#b8e6ff"/>
+  <circle cx="92" cy="76" r="3" fill="#20232b"/>
+  <circle cx="128" cy="76" r="3" fill="#20232b"/>
+  <!-- Nez et bouche -->
+  <path d="M104 91 Q110 85 116 91 Q110 98 104 91" fill="#f2a2b5"/>
+  <path d="M110 96 Q104 105 99 100 M110 96 Q116 105 121 100"
+        fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <!-- Moustaches -->
+  <path d="M83 94 L48 87 M83 101 L49 108 M137 94 L172 87 M137 101 L171 108"
+        stroke="white" stroke-width="2" stroke-linecap="round"/>
+</svg>
+</div>
+
+<p id="message">Voici mon petit chat noir !</p>
+<button onclick="miaou()">Dire bonjour</button>
+
+<script>
+function miaou() {
+  document.getElementById("message").textContent = "Miaou ! Bienvenue !";
+}
+</script>
+
+</body>
+</html>
+
