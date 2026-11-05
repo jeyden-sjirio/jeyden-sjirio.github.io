@@ -1,75 +1,420 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Mon petit monde</title>
-<style>
-body {
-  margin:0; height:100vh; overflow:hidden;
-  background:linear-gradient(#65b5f0,#b5e3ff);
-  color:white; font-family:Arial; text-align:center;
-}
-h1 { margin-top:100px; }
-.cat { width:220px; margin:20px auto; animation:saute 2s infinite ease-in-out; }
-.cloud { position:absolute; font-size:65px; animation:vole 18s linear infinite; }
-.c1 { top:15%; left:-100px; }
-.c2 { top:40%; left:-150px; animation-delay:8s; }
-@keyframes saute { 50% { transform:translateY(-18px); } }
-@keyframes vole { to { left:110%; } }
-button {
-  padding:12px 25px; border:0; border-radius:20px;
-  background:#1769aa; color:white; cursor:pointer;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mon petit monde</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font: bold 16px "Courier New", monospace;
+      color: #fff;
+      text-shadow: 2px 2px 0 #000;
+      background: linear-gradient(#3d9bff 0 34%, #6cb8ff 34% 67%, #9bd7ff 67%);
+    }
+    .ecran {
+      display: none;
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .actif { display: flex; }
+
+    /* Nuages carrés (style pixel) */
+    .nuage {
+      position: absolute;
+      width: 100px;
+      height: 28px;
+      background: #fff;
+      box-shadow: inset 0 -6px 0 #cfe8ff;
+      animation: vole 40s linear infinite;
+    }
+    .nuage::before {
+      content: "";
+      position: absolute;
+      top: -20px;
+      left: 24px;
+      width: 40px;
+      height: 20px;
+      background: #fff;
+    }
+    @keyframes vole {
+      from { transform: translateX(-250px); }
+      to   { transform: translateX(110vw); }
+    }
+
+    /* Décorations */
+    .soleil {
+      position: absolute; top: 30px; right: 60px;
+      width: 44px; height: 44px;
+      background: #ffd23a; border: 4px solid #000;
+      box-shadow: 0 0 0 8px rgba(255, 210, 58, .45);
+      animation: tourne 10s steps(8) infinite;
+    }
+    @keyframes tourne { to { transform: rotate(360deg); } }
+
+    .etincelle {
+      position: absolute; width: 6px; height: 6px; background: #fff;
+      box-shadow: 6px 0 #fff, -6px 0 #fff, 0 6px #fff, 0 -6px #fff;
+      animation: clignote 2s steps(2) infinite;
+    }
+    @keyframes clignote { 50% { opacity: .2; } }
+
+    .herbe {
+      position: fixed; left: 0; bottom: 0; width: 100%; height: 48px;
+      background: linear-gradient(#4caf50 0 12px, #8b5a2b 12px);
+      border-top: 4px solid #000;
+    }
+    .fleur {
+      position: fixed; bottom: 70px; width: 8px; height: 8px;
+      background: #ffd23a;
+      box-shadow: 8px 0 #ff4d6d, -8px 0 #ff4d6d, 0 8px #ff4d6d, 0 -8px #ff4d6d;
+    }
+    .fleur::after {
+      content: ""; position: absolute; top: 16px; left: 2px;
+      width: 4px; height: 22px; background: #2e7d32;
+    }
+    .deco { color: #ffd23a; font-size: 24px; margin: 0 0 10px; }
+
+    /* Chat du menu */
+    .chat { position: relative; animation: saute 1.2s steps(6) infinite; }
+    .chat canvas { width: 256px; display: block; image-rendering: pixelated; }
+    @keyframes saute {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-24px); }
+    }
+    .nom {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #000;
+      padding: 2px 10px;
+      white-space: nowrap;
+    }
+
+    h1 { font-size: 40px; letter-spacing: 2px; text-shadow: 4px 4px 0 #000; margin: 0 0 15px; }
+    #message { margin: 30px 0 10px; font-size: 20px; }
+    input, button {
+      font: inherit;
+      padding: 10px 18px;
+      margin: 6px;
+      border: 4px solid #000;
+      border-radius: 0;
+      text-shadow: none;
+    }
+    input { background: #fff; color: #000; }
+    button { background: #ffd23a; color: #000; cursor: pointer; box-shadow: 0 4px 0 #a67c00; }
+    button:active { transform: translateY(4px); box-shadow: none; }
+
+    /* Bouton son (en haut à gauche) */
+    #son { position: fixed; top: 10px; left: 10px; z-index: 5; padding: 6px 12px; margin: 0; }
+
+    /* Le canvas fait 320x176 pixels, agrandi sans flou */
+    #ecran {
+      width: min(960px, 95vw, calc((100vh - 120px) * 1.8182));
+      image-rendering: pixelated;
+      border: 6px solid #14141e;
+      box-shadow: 0 0 0 4px #ffd23a;
+    }
+  </style>
 </head>
 <body>
 
-<div class="cloud c1">☁️</div>
-<div class="cloud c2">☁️</div>
+  <!-- Musique de fond (mets ton fichier heaven-sent.mp3 dans le dossier) -->
+  <audio id="musique" src="heaven-sent.mp3" loop></audio>
+  <button id="son" onclick="basculerSon()">🔊</button>
 
-<h1>Bienvenue dans mon petit monde</h1>
+  <div class="nuage" style="top: 10%;"></div>
+  <div class="nuage" style="top: 30%; animation-duration: 55s; animation-delay: -20s;"></div>
+  <div class="nuage" style="top: 70%; animation-duration: 47s; animation-delay: -35s;"></div>
 
-<div class="cat">
-<svg viewBox="0 0 220 190" xmlns="http://www.w3.org/2000/svg">
-  <!-- Queue -->
-  <path d="M155 135 Q210 145 190 95 Q180 75 195 65"
-        fill="none" stroke="#292b35" stroke-width="13" stroke-linecap="round"/>
-  <!-- Corps -->
-  <ellipse cx="110" cy="135" rx="62" ry="39" fill="#292b35"/>
-  <!-- Pattes -->
-  <ellipse cx="75" cy="160" rx="19" ry="11" fill="#292b35"/>
-  <ellipse cx="145" cy="160" rx="19" ry="11" fill="#292b35"/>
-  <!-- Tête -->
-  <circle cx="110" cy="75" r="48" fill="#292b35"/>
-  <!-- Oreilles -->
-  <path d="M70 48 L68 8 L101 34 Z" fill="#292b35"/>
-  <path d="M120 34 L153 8 L150 53 Z" fill="#292b35"/>
-  <path d="M77 35 L75 19 L91 34 Z M131 33 L145 19 L143 40 Z" fill="#e99cae"/>
-  <!-- Yeux -->
-  <ellipse cx="92" cy="75" rx="6" ry="9" fill="#b8e6ff"/>
-  <ellipse cx="128" cy="75" rx="6" ry="9" fill="#b8e6ff"/>
-  <circle cx="92" cy="76" r="3" fill="#20232b"/>
-  <circle cx="128" cy="76" r="3" fill="#20232b"/>
-  <!-- Nez et bouche -->
-  <path d="M104 91 Q110 85 116 91 Q110 98 104 91" fill="#f2a2b5"/>
-  <path d="M110 96 Q104 105 99 100 M110 96 Q116 105 121 100"
-        fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
-  <!-- Moustaches -->
-  <path d="M83 94 L48 87 M83 101 L49 108 M137 94 L172 87 M137 101 L171 108"
-        stroke="white" stroke-width="2" stroke-linecap="round"/>
-</svg>
-</div>
+  <div class="soleil"></div>
+  <div class="etincelle" style="top: 18%; left: 12%;"></div>
+  <div class="etincelle" style="top: 45%; left: 85%; animation-delay: -1s;"></div>
+  <div class="etincelle" style="top: 60%; left: 20%; animation-delay: -0.5s;"></div>
+  <div class="etincelle" style="top: 25%; left: 70%; animation-delay: -1.5s;"></div>
+  <div class="herbe"></div>
+  <div class="fleur" style="left: 6%;"></div>
+  <div class="fleur" style="left: 22%;"></div>
+  <div class="fleur" style="left: 41%;"></div>
+  <div class="fleur" style="left: 63%;"></div>
+  <div class="fleur" style="left: 80%;"></div>
+  <div class="fleur" style="left: 94%;"></div>
 
-<p id="message">Voici mon petit chat noir !</p>
-<button onclick="miaou()">Dire bonjour</button>
+  <!-- ÉCRAN 1 : pseudo -->
+  <div id="accueil" class="ecran actif">
+    <h1>MON PETIT MONDE</h1>
+    <p class="deco">★ ✿ ★</p>
+    <p>Comment t'appelles-tu ?</p>
+    <div>
+      <input id="pseudo" maxlength="12" placeholder="Ton pseudo" onkeydown="if (event.key === 'Enter') entrer()">
+      <button onclick="entrer()">ENTRER</button>
+    </div>
+  </div>
 
-<script>
-function miaou() {
-  document.getElementById("message").textContent = "Miaou ! Bienvenue !";
-}
-</script>
+  <!-- ÉCRAN 2 : menu -->
+  <div id="menu" class="ecran">
+    <div class="chat"><span class="nom"></span><canvas id="cm" width="16" height="11"></canvas></div>
+    <p id="message">Un petit chat vous attend…</p>
+    <div>
+      <button onclick="direBonjour()">DIRE BONJOUR</button>
+      <button onclick="demarrer()">DÉMARRER LE JEU</button>
+    </div>
+  </div>
+
+  <!-- ÉCRAN 3 : jeu -->
+  <div id="jeu" class="ecran">
+    <p id="info"></p>
+    <canvas id="ecran" width="320" height="176"></canvas>
+  </div>
+
+  <script>
+    let pseudo = "";
+    const musique = document.getElementById("musique");
+
+    function afficher(id) {
+      document.querySelectorAll(".ecran").forEach(e => e.classList.remove("actif"));
+      document.getElementById(id).classList.add("actif");
+    }
+    function entrer() {
+      pseudo = document.getElementById("pseudo").value.trim() || "Minou";
+      document.querySelector(".nom").textContent = pseudo;
+      document.getElementById("message").textContent = "Bonjour " + pseudo + " !";
+      // Le navigateur n'autorise le son qu'après un clic : on le lance ici
+      musique.volume = 0.4;
+      musique.play().catch(() => {});
+      afficher("menu");
+    }
+    function direBonjour() {
+      document.getElementById("message").textContent = "Miaou ! Bienvenue " + pseudo + " !";
+    }
+    function basculerSon() {
+      musique.muted = !musique.muted;
+      document.getElementById("son").textContent = musique.muted ? "🔇" : "🔊";
+      if (!musique.muted && musique.paused) musique.play().catch(() => {});
+    }
+
+    // ---------- LE CHAT EN PIXEL ART ----------
+    // Chaque lettre = 1 pixel : k noir, g reflet, y yeux, p rose, w moustache, r collier
+    const couleurs = { k: "#14141e", g: "#3d3d55", y: "#ffd633", p: "#ff8fa3", w: "#fff", r: "#e63946" };
+    const corps = [
+      "..........kk..kk",
+      "k.........kpkkpk",
+      "k........kkkkkkk",
+      "k........kkkykyk",
+      "kk.......kkkkkkp",
+      ".kkgggggggkkkkw.",
+      ".kkkkkkkkkrrkk..",
+      "..kkkkkkkkkkkk..",
+      "..kkkkkkkkkkkk..",
+      "..kk.kkkkk.kkk.."
+    ];
+    const jambes = ["..kk.k...k.kk...", "..kk..k.k..k.kk."];
+
+    function chat(c, ox, oy, dir, fr) {
+      [...corps, jambes[fr]].forEach((ligne, j) => [...ligne].forEach((p, i) => {
+        if (p === ".") return;
+        c.fillStyle = couleurs[p];
+        c.fillRect(Math.round(ox) + (dir > 0 ? i : 15 - i), Math.round(oy) + j, 1, 1);
+      }));
+    }
+    chat(document.getElementById("cm").getContext("2d"), 0, 0, 1, 0);
+
+    // ---------- LES NIVEAUX ----------
+    // sol = tronçons de terre [début, fin] | plats = plateformes [colonne, ligne, longueur]
+    // pics = colonnes de pics | mobs = colonnes des monstres
+    const niveaux = [
+      { w: 30, sol: [[0,9],[12,19],[22,29]], plats: [[5,6,3]], pics: [], mobs: [] },
+      { w: 36, sol: [[0,8],[11,18],[21,28],[31,35]], plats: [[13,6,3],[23,6,3]], pics: [], mobs: [15,25] },
+      { w: 40, sol: [[0,7],[10,15],[18,24],[27,33],[36,39]], plats: [[11,6,2],[19,6,2],[28,6,3]], pics: [4,13,30], mobs: [21,31] },
+      { w: 44, sol: [[0,6],[9,13],[16,19],[22,28],[31,36],[39,43]], plats: [[10,6,2],[17,6,2],[23,6,2],[32,6,3]], pics: [3,12,25,34], mobs: [5,27,35] },
+      { w: 50, sol: [[0,6],[10,14],[17,21],[24,30],[33,37],[41,45],[48,49]], plats: [[18,6,2],[34,6,2],[42,6,2]], pics: [3,12,27,35,42], mobs: [4,26,36,44] }
+    ];
+    // [ciel haut, ciel bas, herbe, terre, monstre, eau]
+    const decors = [
+      ["#5ec8f2","#9be3fb","#4caf50","#8b5a2b","#5fd35f","#1a8fd0"],
+      ["#ff9f6e","#ffd7a8","#7bc043","#a0522d","#b45fe0","#1a8fd0"],
+      ["#2b2b7a","#6a5acd","#3fa7a0","#4a4a6a","#ff5f7e","#2a2a8f"],
+      ["#a8d8f0","#e8f6ff","#ffffff","#7aa0c8","#4d9de0","#4fb3ff"],
+      ["#5a1a1a","#c0392b","#e67e22","#3b1f1f","#ffd23a","#ff5a1f"]
+    ];
+
+    // ---------- LE JEU ----------
+    const T = 16, touches = {};
+    document.onkeydown = e => {
+      touches[e.key] = true;
+      if (enJeu && [" ", "ArrowUp", "ArrowDown"].includes(e.key)) e.preventDefault();
+    };
+    document.onkeyup = e => touches[e.key] = false;
+
+    const ctx = document.getElementById("ecran").getContext("2d");
+    ctx.font = "bold 8px monospace";
+    ctx.textAlign = "center";
+    const nuages = [{ x: 20, y: 20, v: 0.15 }, { x: 150, y: 50, v: 0.1 }, { x: 260, y: 30, v: 0.2 }];
+    let niv = 0, W = 0, g = [], mobs = [], x, y, vy, sol, dir = 1, atk = 0, f = 0, msg = "", msgT = 0, fin = false, enJeu = false;
+
+    function rect(c, a, b, w, h) { ctx.fillStyle = c; ctx.fillRect(Math.round(a), Math.round(b), w, h); }
+    function texte(t, a, b) { ctx.fillStyle = "#000"; ctx.fillText(t, a + 1, b + 1); ctx.fillStyle = "#fff"; ctx.fillText(t, a, b); }
+    function mur(px, py) { const r = g[Math.floor(py / T)]; return r && r[Math.floor(px / T)]; }
+    function touche(a, b) { return mur(a + 2, b) || mur(a + 13, b) || mur(a + 2, b + 10) || mur(a + 13, b + 10); }
+
+    function charger(n) {
+      niv = n;
+      const L = niveaux[n];
+      W = L.w;
+      g = Array.from({ length: 11 }, () => Array(W).fill(0));
+      L.sol.forEach(([a, b]) => { for (let c = a; c <= b; c++) g[8][c] = g[9][c] = 1; });
+      L.plats.forEach(([c, r, l]) => { for (let i = 0; i < l; i++) g[r][c + i] = 1; });
+      mobs = L.mobs.map(c => ({ x: c * T + 2, x0: c * T + 2, v: 0.4 + n * 0.1, hp: n > 2 ? 2 : 1, cd: 0 }));
+      x = 8; y = 117; vy = 0; atk = 0;
+      msg = n === 1 ? "Épée débloquée ! Touche X" : "Niveau " + (n + 1);
+      msgT = 150;
+      document.getElementById("info").textContent = "← → bouger • ↑ ou ESPACE sauter" + (n > 0 ? " • X épée" : "");
+    }
+
+    function demarrer() {
+      fin = false;
+      charger(0);
+      afficher("jeu");
+      if (!enJeu) { enJeu = true; boucle(); }
+    }
+
+    function boucle() {
+      f++;
+      const L = niveaux[niv], d = decors[niv];
+      const marche = touches.ArrowLeft || touches.ArrowRight;
+
+      if (fin) {
+        if (touches.Enter) { fin = false; charger(0); }
+      } else {
+        let dead = false;
+
+        // 1. Déplacements et saut (vitesse 1.2 : plus lent)
+        const dx = ((touches.ArrowRight ? 1 : 0) - (touches.ArrowLeft ? 1 : 0)) * 1.2;
+        if (dx) dir = dx;
+        if (!touche(x + dx, y) && x + dx >= 0) x += dx;
+        if ((touches.ArrowUp || touches[" "]) && sol) vy = -4.5;
+
+        // 2. Gravité
+        vy += 0.25;
+        if (touche(x, y + vy)) {
+          if (vy > 0) y = Math.floor((y + vy + 10) / T) * T - 11;
+          vy = 0;
+        } else y += vy;
+        sol = touche(x, y + 1);
+
+        // 3. Épée (débloquée à partir du niveau 2)
+        if (niv > 0 && (touches.x || touches.X) && atk === 0) atk = 12;
+        const bx = dir > 0 ? x + 17 : x - 10;
+
+        // 4. Monstres
+        mobs.forEach(m => {
+          m.x += m.v;
+          if (Math.abs(m.x - m.x0) > 16) m.v = -m.v;
+          if (m.cd) m.cd--;
+          if (atk && !m.cd && bx + 9 > m.x && bx < m.x + 12) { m.hp--; m.cd = 15; m.x += dir * 6; }
+          if (x + 14 > m.x && x + 2 < m.x + 12 && y + 11 > 120 && y < 128) dead = true;
+        });
+        mobs = mobs.filter(m => m.hp > 0);
+
+        // 5. Pics, eau, drapeau
+        L.pics.forEach(c => { if (x + 13 > c * T + 2 && x + 2 < c * T + 14 && y + 11 > 122 && y < 128) dead = true; });
+        if (y > 150) dead = true;
+        if (dead) charger(niv);
+        else if (x > (W - 2) * T) { if (niv + 1 >= niveaux.length) fin = true; else charger(niv + 1); }
+
+        if (atk) atk--;
+        if (msgT) msgT--;
+      }
+
+      // ---------- DESSIN ----------
+      rect(d[0], 0, 0, 320, 176);
+      rect(d[1], 0, 70, 320, 106);
+      nuages.forEach(n => {
+        n.x = (n.x + n.v) % 360;
+        const nx = Math.floor(n.x) - 40;
+        rect("#fff", nx, n.y, 28, 8);
+        rect("#fff", nx + 6, n.y - 4, 14, 4);
+      });
+
+      // Collines lointaines (bougent 3 fois moins vite : effet de profondeur)
+      const cam = Math.round(Math.max(0, Math.min(x - 150, W * T - 320)));
+      for (let i = 0; i < 50; i++) {
+        const h = 14 + Math.abs((i % 10) - 5) * 4;
+        rect("rgba(0,0,0,.12)", i * 8 - Math.floor(cam / 3) % 80, 128 - h, 8, h);
+      }
+
+      ctx.save();
+      ctx.translate(-cam, 0);
+
+      for (let r = 0; r < 10; r++) for (let c = 0; c < W; c++) if (g[r][c]) {
+        rect(d[3], c * T, r * T, T, T);
+        rect("rgba(0,0,0,.2)", c * T + 3, r * T + 9, 3, 2);
+        rect("rgba(0,0,0,.2)", c * T + 11, r * T + 12, 3, 2);
+        if (!(g[r - 1] && g[r - 1][c])) rect(d[2], c * T, r * T, T, 4);
+      }
+
+      // Fleurs et buissons sur l'herbe
+      for (let c = 0; c < W; c++) if (g[8][c] && !g[7][c]) {
+        if (c % 4 === 1) {
+          rect("#2e7d32", c * T + 7, 122, 1, 6);
+          rect("#ff4d6d", c * T + 6, 120, 3, 3);
+          rect("#ffd23a", c * T + 7, 121, 1, 1);
+        }
+        if (c % 5 === 3) {
+          rect("#2e8b3d", c * T + 3, 124, 10, 4);
+          rect("#3fae52", c * T + 5, 121, 6, 3);
+        }
+      }
+
+      rect(d[5], 0, 160, W * T, 16);
+      for (let c = 0; c < W; c++) rect("rgba(255,255,255,.4)", c * T + ((f >> 4) % 2) * 8, 160, 8, 2);
+
+      niveaux[niv].pics.forEach(c => { for (let t = 0; t < 2; t++) for (let j = 0; j < 4; j++) rect("#cfd8e3", c * T + t * 8 + 3 - j, 120 + j * 2, 2 + j * 2, 2); });
+
+      const fx = (W - 2) * T + 4;
+      rect("#ddd", fx, 92, 2, 36);
+      rect("#ff4d6d", fx + 2, 92, 8 + ((f >> 4) % 2) * 2, 7);
+
+      mobs.forEach(m => {
+        const b = (f >> 3) % 2, col = m.cd > 10 ? "#fff" : d[4];
+        rect(col, m.x, 121 - b, 12, 7 + b);
+        rect(col, m.x + 2, 118 - b, 8, 3);
+        rect("#fff", m.x + 2, 121 - b, 3, 3);
+        rect("#fff", m.x + 7, 121 - b, 3, 3);
+        rect("#000", m.x + 3, 122 - b, 1, 2);
+        rect("#000", m.x + 8, 122 - b, 1, 2);
+      });
+
+      chat(ctx, x, y, dir, (!sol || (marche && (f >> 3) % 2)) ? 1 : 0);
+
+      if (atk) {
+        const hx = dir > 0 ? x + 14 : x + 2;
+        rect("#e6f2ff", dir > 0 ? hx + 3 : hx - 12, y + 4, 9, 2);
+        rect("#ffd23a", dir > 0 ? hx + 2 : hx - 3, y + 3, 1, 4);
+        rect("#8b4513", dir > 0 ? hx : hx - 2, y + 4, 2, 2);
+      }
+      texte(pseudo, x + 8, y - 3);
+      ctx.restore();
+
+      texte("NIVEAU " + (niv + 1) + "/5", 36, 10);
+      if (msgT) texte(msg, 160, 60);
+      if (fin) {
+        rect("rgba(0,0,0,.7)", 0, 0, 320, 176);
+        texte("BRAVO " + pseudo + " !", 160, 80);
+        texte("Entrée pour rejouer", 160, 100);
+      }
+
+      requestAnimationFrame(boucle);
+    }
+  </script>
 
 </body>
 </html>
+
 
