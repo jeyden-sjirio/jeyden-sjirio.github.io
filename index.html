@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Mon petit monde</title>
   <style>
     body {
@@ -12,6 +12,10 @@
       color: #fff;
       text-shadow: 2px 2px 0 #000;
       background: linear-gradient(#3d9bff 0 34%, #6cb8ff 34% 67%, #9bd7ff 67%);
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
     .ecran {
       display: none;
@@ -121,6 +125,23 @@
       border: 6px solid #14141e;
       box-shadow: 0 0 0 4px #ffd23a;
     }
+
+    /* Boutons tactiles : cachés sur ordinateur, visibles sur mobile */
+    #tactile { display: none; }
+    @media (pointer: coarse) {
+      #info { display: none; }
+      #tactile {
+        display: flex; justify-content: space-between;
+        position: fixed; left: 0; right: 0; bottom: 12px;
+        padding: 0 16px; z-index: 6; pointer-events: none;
+      }
+      #tactile div { display: flex; gap: 14px; }
+      #tactile button {
+        pointer-events: auto; touch-action: none;
+        width: 66px; height: 66px; padding: 0; margin: 0;
+        font-size: 28px; border-radius: 50%; opacity: .8;
+      }
+    }
   </style>
 </head>
 <body>
@@ -171,6 +192,10 @@
   <div id="jeu" class="ecran">
     <p id="info"></p>
     <canvas id="ecran" width="320" height="176"></canvas>
+    <div id="tactile">
+      <div><button data-k="ArrowLeft">◀</button><button data-k="ArrowRight">▶</button></div>
+      <div><button id="bx" data-k="x">⚔</button><button data-k="ArrowUp">▲</button></div>
+    </div>
   </div>
 
   <script>
@@ -225,6 +250,19 @@
     }
     chat(document.getElementById("cm").getContext("2d"), 0, 0, 1, 0);
 
+    // ---------- LE CŒUR EN PIXEL ART ----------
+    // k contour, R rouge, w reflet
+    const coeur = [
+      ".kkk.kkk.",
+      "kRRRkRRRk",
+      "kRwRRRRRk",
+      "kRRRRRRRk",
+      ".kRRRRRk.",
+      "..kRRRk..",
+      "...kRk...",
+      "....k...."
+    ];
+
     // ---------- LES NIVEAUX ----------
     // sol = tronçons de terre [début, fin] | plats = plateformes [colonne, ligne, longueur]
     // pics = colonnes de pics | mobs = colonnes des monstres
@@ -256,7 +294,8 @@
     ctx.font = "bold 8px monospace";
     ctx.textAlign = "center";
     const nuages = [{ x: 20, y: 20, v: 0.15 }, { x: 150, y: 50, v: 0.1 }, { x: 260, y: 30, v: 0.2 }];
-    let niv = 0, W = 0, g = [], mobs = [], x, y, vy, sol, dir = 1, atk = 0, f = 0, msg = "", msgT = 0, fin = false, enJeu = false;
+    let niv = 0, W = 0, g = [], mobs = [], x, y, vy, sol, dir = 1, atk = 0, f = 0, msg = "", msgT = 0;
+    let vies = 3, perdu = 0, fin = false, enJeu = false;
 
     function rect(c, a, b, w, h) { ctx.fillStyle = c; ctx.fillRect(Math.round(a), Math.round(b), w, h); }
     function texte(t, a, b) { ctx.fillStyle = "#000"; ctx.fillText(t, a + 1, b + 1); ctx.fillStyle = "#fff"; ctx.fillText(t, a, b); }
@@ -274,12 +313,18 @@
       x = 8; y = 117; vy = 0; atk = 0;
       msg = n === 1 ? "Épée débloquée ! Touche X" : "Niveau " + (n + 1);
       msgT = 150;
+      document.getElementById("bx").style.visibility = n > 0 ? "visible" : "hidden";
       document.getElementById("info").textContent = "← → bouger • ↑ ou ESPACE sauter" + (n > 0 ? " • X épée" : "");
     }
 
-    function demarrer() {
-      fin = false;
+    // Tout recommencer de zéro : 3 cœurs et niveau 1
+    function recommencer() {
+      vies = 3; perdu = 0; fin = false;
       charger(0);
+    }
+
+    function demarrer() {
+      recommencer();
       afficher("jeu");
       if (!enJeu) { enJeu = true; boucle(); }
     }
@@ -289,12 +334,15 @@
       const L = niveaux[niv], d = decors[niv];
       const marche = touches.ArrowLeft || touches.ArrowRight;
 
-      if (fin) {
-        if (touches.Enter) { fin = false; charger(0); }
+      if (perdu) {
+        // Écran GAME OVER : après 90 images, on recommence de zéro
+        if (--perdu === 0) recommencer();
+      } else if (fin) {
+        if (touches.Enter) recommencer();
       } else {
         let dead = false;
 
-        // 1. Déplacements et saut (vitesse 1.2 : plus lent)
+        // 1. Déplacements et saut
         const dx = ((touches.ArrowRight ? 1 : 0) - (touches.ArrowLeft ? 1 : 0)) * 1.2;
         if (dx) dir = dx;
         if (!touche(x + dx, y) && x + dx >= 0) x += dx;
@@ -325,8 +373,14 @@
         // 5. Pics, eau, drapeau
         L.pics.forEach(c => { if (x + 13 > c * T + 2 && x + 2 < c * T + 14 && y + 11 > 122 && y < 128) dead = true; });
         if (y > 150) dead = true;
-        if (dead) charger(niv);
-        else if (x > (W - 2) * T) { if (niv + 1 >= niveaux.length) fin = true; else charger(niv + 1); }
+
+        if (dead) {
+          vies--;                                   // on perd un cœur
+          if (vies <= 0) perdu = 90;                // plus de cœur : game over
+          else charger(niv);                        // sinon on recommence le niveau
+        } else if (x > (W - 2) * T) {
+          if (niv + 1 >= niveaux.length) fin = true; else charger(niv + 1);
+        }
 
         if (atk) atk--;
         if (msgT) msgT--;
@@ -375,7 +429,7 @@
       rect(d[5], 0, 160, W * T, 16);
       for (let c = 0; c < W; c++) rect("rgba(255,255,255,.4)", c * T + ((f >> 4) % 2) * 8, 160, 8, 2);
 
-      niveaux[niv].pics.forEach(c => { for (let t = 0; t < 2; t++) for (let j = 0; j < 4; j++) rect("#cfd8e3", c * T + t * 8 + 3 - j, 120 + j * 2, 2 + j * 2, 2); });
+      L.pics.forEach(c => { for (let t = 0; t < 2; t++) for (let j = 0; j < 4; j++) rect("#cfd8e3", c * T + t * 8 + 3 - j, 120 + j * 2, 2 + j * 2, 2); });
 
       const fx = (W - 2) * T + 4;
       rect("#ddd", fx, 92, 2, 36);
@@ -402,16 +456,42 @@
       texte(pseudo, x + 8, y - 3);
       ctx.restore();
 
+      // Interface : niveau et 3 cœurs (rouges = vies restantes, gris = vies perdues)
       texte("NIVEAU " + (niv + 1) + "/5", 36, 10);
+      for (let i = 0; i < 3; i++) {
+        coeur.forEach((ligne, j) => [...ligne].forEach((p, k) => {
+          if (p === ".") return;
+          const c = p === "k" ? "#14141e" : i < vies ? (p === "w" ? "#ffb3c1" : "#e63946") : "#6b6b78";
+          rect(c, 282 + i * 11 + k, 3 + j, 1, 1);
+        }));
+      }
+
       if (msgT) texte(msg, 160, 60);
+      if (perdu) {
+        rect("rgba(0,0,0,.7)", 0, 0, 320, 176);
+        texte("GAME OVER", 160, 80);
+        texte("On recommence de zéro...", 160, 100);
+      }
       if (fin) {
         rect("rgba(0,0,0,.7)", 0, 0, 320, 176);
         texte("BRAVO " + pseudo + " !", 160, 80);
-        texte("Entrée pour rejouer", 160, 100);
+        texte("Entrée ou toucher pour rejouer", 160, 100);
       }
 
       requestAnimationFrame(boucle);
     }
+
+    // ---------- COMMANDES TACTILES ----------
+    // Chaque bouton "appuie" sur la même touche que le clavier
+    document.querySelectorAll("#tactile button").forEach(b => {
+      const k = b.dataset.k;
+      b.onpointerdown = e => { e.preventDefault(); touches[k] = true; };
+      b.onpointerup = b.onpointerleave = b.onpointercancel = () => touches[k] = false;
+      b.oncontextmenu = e => e.preventDefault();
+    });
+
+    // Sur mobile, on touche l'écran de fin pour rejouer (à la place d'Entrée)
+    document.getElementById("ecran").onpointerdown = () => { if (fin) recommencer(); };
   </script>
 
 </body>
